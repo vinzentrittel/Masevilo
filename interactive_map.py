@@ -1,4 +1,6 @@
+from __future__ import annotations
 import folium
+import numpy as np
 from folium.raster_layers import ImageOverlay
 from dataclasses import dataclass
 
@@ -37,11 +39,17 @@ class GeoLocation:
     def tolist(self):
         return self.longitude, self.latitude
 
-    def __add__(self, other: GeoLocation):
-        return GeoLocation(self.latitude + other.latitude, self.longitude + other.longitude)
+    def __add__(self, other):
+        if isinstance(other, GeoLocation):
+            return GeoLocation(self.latitude + other.latitude, self.longitude + other.longitude)
+        else:
+            return GeoLocation(self.latitude + other, self.longitude + other)
 
-    def __sub__(self, other: GeoLocation):
-        return GeoLocation(self.latitude - other.latitude, self.longitude + other.longitude)
+    def __sub__(self, other):
+        if isinstance(other, GeoLocation):
+            return GeoLocation(self.latitude - other.latitude, self.longitude - other.longitude)
+        else:
+            return GeoLocation(self.latitude - other, self.longitude - other)
 
     def __lt__(self, other):
         if self.latitude < other.latitude or self.longitude < other.longitude:
@@ -61,6 +69,9 @@ class GeoLocation:
     def longitude(self):
         return self._longitude
 
+    def __str__(self):
+        return f"lat: {self._latitude}, lon: {self._longitude}"
+
 def get_bounding_box(loc: GeoLocation, radius=1.0):
     """
     Construct a bounding box of around passed GeoLocation.
@@ -72,25 +83,58 @@ def get_bounding_box(loc: GeoLocation, radius=1.0):
     ]
 
 
+def gaussian_filter(std_deviation=2, mean=0, size=7):
+    variance = std_deviation * std_deviation
+    factor = 1 / np.sqrt(2 * np.pi * variance)
+
+    def gaussian_func(value, mean=mean, variance=variance, normalize=factor):
+        deviation = value - mean
+        return normalize * np.exp(-(deviation * deviation)/(2*variance))
+
+    kernel = [gaussian_func(n) for n in range(-size // 2, size // 2)] 
+    normalize = 1 / sum(kernel)
+    return [normalize * value for value in kernel]
+
+
+def filter_array(line, kernel):
+    assert(len(kernel) % 2 == 1)
+    radius = len(kernel) // 2
+    new_line = [0 for _ in range(len(line))]
+    for line_index in range(radius + 1, len(line) - radius):
+        for kernel_index in range(-radius, radius + 1):
+            current_index = line_index + kernel_index
+            kernel_index_off = kernel_index + radius
+            new_line[current_index] += kernel[kernel_index_off] * line[line_index]
+    return new_line
+
 class TrashMap:
-    MAP_RADIUS = 0.5
+    MAP_DIM = 0.5
     SCAN_LINES = 4000
 
-    def __init__(self, center: GeoLocation, radius=MAP_RADIUS, *, scanlines=SCAN_LINES):
-        self.radius = radius
-        self.center = center
+    def __init__(self, origin: GeoLocation, dimension=MAP_DIM, *, scanlines=SCAN_LINES):
+        self.dimension = dimension
+        self.origin = origin
+        self.scanlines = scanlines
 
-        line = lambda: [0 for _ in range(scanlines)]
-        self.map = [line() for _ in range(scanlines)]
+        self.map = np.array([[0] * scanlines] * scanlines)
 
     def add(self, location: GeoLocation, value=1):
         if location in self:
+            normal_location = location - self.origin
+            index_x = round(normal_location.longitude * self.scanlines)
+            index_y = round(normal_location.latitude * self.scanlines)
+            self.map[index_y][index_x] += value
+
 
     def __contains__(self, location: GeoLocation):
-        if location < self.center - self.radius or location > self.center + self.radius:
+        if location < self.origin or location > self.origin + self.dimension:
             return False
         return True
 
+    def smooth(self):
+        
+        pass
+        
 
 if __name__ == "__main__":
     """ some testing """
@@ -105,4 +149,5 @@ if __name__ == "__main__":
 
     m.save("index.html")
 
-    m = TrashMap(0, 0)
+    trash = TrashMap(GeoLocation(0,0))
+    trash.add(GeoLocation(0.25, 0.25))

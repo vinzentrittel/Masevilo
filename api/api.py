@@ -1,11 +1,15 @@
-from flask import flask, render_template
+from flask import Flask, render_template
+import folium
 
-app = flask.Flask(__name__)
+app = Flask(__name__)
 app.config["DEBUG"] = True
 
 
 @app.route('/', methods=['GET'])
 def home():
-    return render_template("index.html")
+	m = folium.Map(location=[45.5236, -122.6750])
+	m
+	return render_template("index.html")
 
-app.run()
+if __name__ == "__main__":
+    app.run(debug=True)
