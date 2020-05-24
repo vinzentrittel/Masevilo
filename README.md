@@ -44,3 +44,4 @@ https://a.tile.thunderforest.com/cycle/3/3/3.png?apikey=XYZ
 * OpenStreetMap
 * pip
 * Flask (https://palletsprojects.com/p/flask/)
+https://python-visualization.github.io/folium/quickstart.html#Markers
