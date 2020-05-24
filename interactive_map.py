@@ -1,153 +1,85 @@
+"""
+Convenience function set to create an interactible folium map plugin.
+It can handle geo marker display and creation.
+
+Classes:
+GeoLocation -- Entity to represent a single geo location (latitude, longitude)
+
+Functions:
+create_map -- factory function to create a folium map
+add_marker_insertion -- converts map so that new markers can be inserted
+add_markers -- add a list of new geo markers to a map
+"""
 from __future__ import annotations
-import folium
-import numpy as np
-from folium.raster_layers import ImageOverlay
+
 from dataclasses import dataclass
-
-from sys import argv
-
-
-def wrap(value, min_value, max_value):
-    """
-    Project value onto interval from min_value to max_value.
-    Out of bounds values will be wrapped around.
-    """
-    return ((value - min_value) % (max_value - min_value)) + min_value
-
-
-def wrap_latitude(coordinate):
-    """
-    Project coordinate (latitude) onto interval [-90,90].
-    """
-    return wrap(coordinate, -90, 90)
-
-
-def wrap_longitude(coordinate):
-    """
-    Project coordinate (longitude) onto interval [-90,90].
-    """
-    return wrap(coordinate, -180, 180)
+from typing import List, Callable
+from folium import plugins  # type: ignore # pylint: disable=import-error
+import folium  # type: ignore # pylint: disable=import-error
 
 
 @dataclass
 class GeoLocation:
-    def __init__(self, latitude, longitude):
-        self._latitude = wrap_latitude(latitude)
-        self._longitude = wrap_longitude(longitude)
+    """
+    Data representation for latitude, longitude data tuple.
+    Provides from_dict to translate json list of coordinates into GeoLocationList
+    """
+
+    latitude: float
+    longitude: float
 
     @property
     def tolist(self):
-        return self.longitude, self.latitude
-
-    def __add__(self, other):
-        if isinstance(other, GeoLocation):
-            return GeoLocation(self.latitude + other.latitude, self.longitude + other.longitude)
-        else:
-            return GeoLocation(self.latitude + other, self.longitude + other)
-
-    def __sub__(self, other):
-        if isinstance(other, GeoLocation):
-            return GeoLocation(self.latitude - other.latitude, self.longitude - other.longitude)
-        else:
-            return GeoLocation(self.latitude - other, self.longitude - other)
-
-    def __lt__(self, other):
-        if self.latitude < other.latitude or self.longitude < other.longitude:
-            return True
-        return False
-
-    def __gt__(self, other):
-        if self.latitude > other.latitude or self.longitude > other.longitude:
-            return True
-        return False
-
-    @property
-    def latitude(self):
-        return self._latitude
-
-    @property
-    def longitude(self):
-        return self._longitude
+        """ return as list [latitude, longitude]. """
+        return self.latitude, self.longitude
 
     def __str__(self):
-        return f"lat: {self._latitude}, lon: {self._longitude}"
+        return f"lat: {self.latitude}, lon: {self.longitude}"
 
-def get_bounding_box(loc: GeoLocation, radius=1.0):
+    @classmethod
+    def from_dict(cls, locations):
+        """ convert bulk json locations to a list of GeoLocations. """
+        return [cls(loc["latitude"], loc["longitude"]) for loc in locations.values()]
+
+
+def add_markers(geo_locations: List[GeoLocation], trash_map: folium.Map) -> folium.Map:
+    """ add list of GeoLocation to a map plugin """
+    locations = [loc.tolist for loc in geo_locations]
+    locations = plugins.MarkerCluster(locations)
+    trash_map.add_child(locations)
+
+    return trash_map
+
+
+def add_marker_insertion(trash_map: folium.Map) -> folium.Map:
+    """ transform a map to create markers on click events """
+    trash_map.add_child(folium.features.ClickForMarker())
+    return trash_map
+
+
+def create_map(
+        center: GeoLocation,
+        transform: Callable[[folium.Map], folium.Map] = (lambda x: x)
+) -> folium.Map:
     """
-    Construct a bounding box of around passed GeoLocation.
-    Bounding box values will be provided on a scale from 
+    Create a folium map plugin, to display a world map and markers on the map.
+
+    Keyword Arguments:
+    center -- mid point of the map
+    transform -- transformation function to put freshly created map through
     """
-    return [
-        [wrap_latitude(loc.latitude - radius), wrap_longitude(loc.longitude - radius)],
-        [wrap_latitude(loc.latitude + radius), wrap_longitude(loc.longitude + radius)],
-    ]
+    new_map = folium.Map(location=center.tolist)
+    return transform(new_map)
 
-
-def gaussian_filter(std_deviation=2, mean=0, size=7):
-    variance = std_deviation * std_deviation
-    factor = 1 / np.sqrt(2 * np.pi * variance)
-
-    def gaussian_func(value, mean=mean, variance=variance, normalize=factor):
-        deviation = value - mean
-        return normalize * np.exp(-(deviation * deviation)/(2*variance))
-
-    kernel = [gaussian_func(n) for n in range(-size // 2, size // 2)] 
-    normalize = 1 / sum(kernel)
-    return [normalize * value for value in kernel]
-
-
-def filter_array(line, kernel):
-    assert(len(kernel) % 2 == 1)
-    radius = len(kernel) // 2
-    new_line = [0 for _ in range(len(line))]
-    for line_index in range(radius + 1, len(line) - radius):
-        for kernel_index in range(-radius, radius + 1):
-            current_index = line_index + kernel_index
-            kernel_index_off = kernel_index + radius
-            new_line[current_index] += kernel[kernel_index_off] * line[line_index]
-    return new_line
-
-class TrashMap:
-    MAP_DIM = 0.5
-    SCAN_LINES = 4000
-
-    def __init__(self, origin: GeoLocation, dimension=MAP_DIM, *, scanlines=SCAN_LINES):
-        self.dimension = dimension
-        self.origin = origin
-        self.scanlines = scanlines
-
-        self.map = np.array([[0] * scanlines] * scanlines)
-
-    def add(self, location: GeoLocation, value=1):
-        if location in self:
-            normal_location = location - self.origin
-            index_x = round(normal_location.longitude * self.scanlines)
-            index_y = round(normal_location.latitude * self.scanlines)
-            self.map[index_y][index_x] += value
-
-
-    def __contains__(self, location: GeoLocation):
-        if location < self.origin or location > self.origin + self.dimension:
-            return False
-        return True
-
-    def smooth(self):
-        
-        pass
-        
 
 if __name__ == "__main__":
-    """ some testing """
-    bingen = GeoLocation(float(argv[1]), float(argv[2]))
+    import json
 
-    m = folium.Map(loacation=bingen.tolist)
-    overlay = ImageOverlay(
-        "overlay.png", get_bounding_box(bingen, float(argv[3])), opacity=0.5
-    )
+    with open("file.json") as json_file:
+        data = json.load(json_file)
 
-    m.add_child(overlay)
+    data = GeoLocation.from_dict(data)
+    m = create_map(GeoLocation(52.52, 13.4049), add_marker_insertion)
+    m = add_markers(data, m)
 
     m.save("index.html")
-
-    trash = TrashMap(GeoLocation(0,0))
-    trash.add(GeoLocation(0.25, 0.25))
