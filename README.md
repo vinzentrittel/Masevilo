@@ -38,3 +38,9 @@ Parallel downloading of all tiles from (a.tile.thunderforest.com)[https://a.tile
 To get a tile `x=3`, `y=3`, `z=3`, where x is zoom level between 0-22, get:
     
 https://a.tile.thunderforest.com/cycle/3/3/3.png?apikey=XYZ
+
+## Used Tools and Libraries:
+
+* OpenStreetMap
+* pip
+* Flask (https://palletsprojects.com/p/flask/)
