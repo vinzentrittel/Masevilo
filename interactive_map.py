@@ -9,9 +9,7 @@ class GeoLocation:
     longitude: float
     latitude: float
 
-    def __getitem__(self, index):
-        return self.tolist[index]
-
+    @property
     def tolist(self):
         return self.longitude, self.latitude
 
@@ -38,7 +36,7 @@ if __name__ == "__main__":
     """ some testing """
     bingen = GeoLocation(float(argv[1]), float(argv[2]))
 
-    m = folium.Map(loacation=[float(argv[1]), float(argv[2])])
+    m = folium.Map(loacation=bingen.tolist)
     overlay = ImageOverlay(
         "overlay.png", get_bounding_box(bingen), opacity=0.5
     )
