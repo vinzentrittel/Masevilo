@@ -44,3 +44,10 @@ https://a.tile.thunderforest.com/cycle/3/3/3.png?apikey=XYZ
 * OpenStreetMap
 * pip
 * Flask (https://palletsprojects.com/p/flask/)
+*https://www.youtube.com/watch?v=MwZwr5Tvyxo&t=3s
+
+## Start webapp
+execute run.py with the rest of the files folder clearmybeach (or unpack the zip file).
+go to the local ip http://127.0.0.1:5000/ in your browser
+
+
