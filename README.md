@@ -21,4 +21,4 @@ Flask is, well... Flask.
 execute run.py with the rest of the files folder clearmybeach (or unpack the zip file).
 go to the local ip *localhost:5000/* in your browser
 
-    python3 run.py
+    python3 -m clearmybeach

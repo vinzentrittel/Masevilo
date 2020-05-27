@@ -1,0 +1,12 @@
+{% extends "layout.html" %}
+	 
+ {% block content %} 
+ 
+<div class="map" style="height: 500px;">
+{% block title %}  clear my beach map  {% endblock %}
+{{ super() }} 
+{% block body %}
+    {% include "map.html" %}
+{% endblock %}
+</div>
+{% endblock content %}
