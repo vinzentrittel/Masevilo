@@ -10,11 +10,11 @@ The repository is developed with *Pyhton 3.8*. Third party python libraries can 
 $ pip3.8 install flask
 ```
 
-* **Note**: The repo is likely to build with *Python 3+* versions that are below *Python 3.8*.
+**Note**: *The repo is likely to build with *Python 3+* versions that are below *Python 3.8*.*
 
 ## Running The Service
 
-From this roots root directory, run:
+From this repos root directory, run:
 
 ```sh
 $ python3.8 -m clearmybeach
