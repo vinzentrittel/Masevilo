@@ -1,5 +1,7 @@
 # Codename: ClearMyBeach
 
+PROJECT HALTED
+
 This is an attempt to gather some people and clean up trash in as a group activity
 
 ## Calculate Map Tile Coordinates
